@@ -1,5 +1,5 @@
 [phases.setup]
-nixPkgs = ["php83", "php83Extensions.pdo", "php83Extensions.pdo_mysql", "php83Extensions.mbstring", "php83Extensions.tokenizer", "php83Extensions.xml", "php83Extensions.ctype", "php83Extensions.fileinfo", "php83Extensions.curl", "php83Extensions.zip", "php83Extensions.gd", "composer"]
+nixPkgs = ["php83", "php83Extensions.pdo", "php83Extensions.pdo_mysql", "php83Extensions.mbstring", "php83Extensions.tokenizer", "php83Extensions.xml", "php83Extensions.ctype", "php83Extensions.fileinfo", "php83Extensions.curl", "php83Extensions.zip", "php83Extensions.gd", "php83-fpm", "caddy", "composer"]
 
 [phases.build]
 cmds = [
@@ -7,4 +7,4 @@ cmds = [
 ]
 
 [start]
-cmd = "php artisan config:clear && php artisan migrate --force && php artisan db:seed --force && php -S 0.0.0.0:$PORT -t public"
+cmd = "php artisan config:clear && php artisan migrate --force && php artisan db:seed --force && php-fpm83 -D && caddy run --config /app/Caddyfile"
