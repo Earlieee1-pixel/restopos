@@ -50,7 +50,7 @@ class DatabaseSeeder extends Seeder
             'Chicken' => [
                 ['Chickenjoy 1pc',    89,  'https://i.imgur.com/D10whPz.jpg'],
                 ['Chickenjoy 2pc',    159, 'https://i.imgur.com/6dDWDxg.jpg'],
-                ['Chicken Sandwich',  99,  'https://i.imgur.com/H8Y53j1.jpg'],
+                ['Chicken Sandwich',  99,  'https://i.imgur.com/JIxpUWt.jpg'],
             ],
             'Burger' => [
                 ['Yumburger',         49,  'https://i.imgur.com/pA1I9NI.jpg'],
