@@ -91,8 +91,8 @@ class DatabaseSeeder extends Seeder
                     ]
                 );
 
-                // I-update ang image kung wala pa
-                if (!$product->image) {
+                // I-update ang image para ma-sync ang latest URL
+                if ($product->image !== $image) {
                     $product->update(['image' => $image]);
                 }
             }
