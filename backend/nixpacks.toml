@@ -3,9 +3,8 @@ nixPkgs = ["php83", "php83Extensions.pdo", "php83Extensions.pdo_mysql", "php83Ex
 
 [phases.build]
 cmds = [
-  "composer install --no-dev --optimize-autoloader",
-  "php artisan config:clear"
+  "composer install --no-dev --optimize-autoloader"
 ]
 
 [start]
-cmd = "php artisan migrate --force && php artisan db:seed --force && php -S 0.0.0.0:$PORT -t public"
+cmd = "php artisan config:clear && php artisan migrate --force && php artisan db:seed --force && php -S 0.0.0.0:$PORT -t public"
