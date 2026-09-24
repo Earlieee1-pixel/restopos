@@ -14,28 +14,23 @@ class DatabaseSeeder extends Seeder
 {
     public function run(): void
     {
-        // Default admin account
-        User::create([
+        // Default users — updateOrCreate para dili mag-crash kung na-seed na
+        User::updateOrCreate(['email' => 'admin@restopos.com'], [
             'name'      => 'Admin User',
-            'email'     => 'admin@restopos.com',
             'password'  => Hash::make('password'),
             'role'      => 'admin',
             'is_active' => true,
         ]);
 
-        // Default manager account
-        User::create([
+        User::updateOrCreate(['email' => 'manager@restopos.com'], [
             'name'      => 'Manager User',
-            'email'     => 'manager@restopos.com',
             'password'  => Hash::make('password'),
             'role'      => 'manager',
             'is_active' => true,
         ]);
 
-        // Default cashier account
-        User::create([
+        User::updateOrCreate(['email' => 'cashier@restopos.com'], [
             'name'      => 'Juan Cashier',
-            'email'     => 'cashier@restopos.com',
             'password'  => Hash::make('password'),
             'role'      => 'cashier',
             'is_active' => true,
@@ -60,28 +55,35 @@ class DatabaseSeeder extends Seeder
         ];
 
         foreach ($categories as $catData) {
-            $category = Category::create($catData);
+            // I-skip kung naa na ang kategorya
+            $category = Category::firstOrCreate(
+                ['name' => $catData['name']],
+                ['icon' => $catData['icon'], 'sort_order' => $catData['sort_order']]
+            );
 
             // I-seed ang products para sa kategorya
             foreach ($sampleProducts[$catData['name']] as [$productName, $price]) {
-                Product::create([
-                    'category_id'  => $category->id,
-                    'name'         => $productName,
-                    'description'  => $productName . ' - ' . $catData['name'],
-                    'price'        => $price,
-                    'is_available' => true,
-                ]);
+                Product::firstOrCreate(
+                    ['name' => $productName, 'category_id' => $category->id],
+                    [
+                        'description'  => $productName . ' - ' . $catData['name'],
+                        'price'        => $price,
+                        'is_available' => true,
+                    ]
+                );
             }
         }
 
-        // Sample tables — Ground floor (1-5), Second floor (6-10)
+        // Sample tables — i-skip kung naa na
         for ($i = 1; $i <= 10; $i++) {
-            Table::create([
-                'table_number' => $i,
-                'capacity'     => ($i <= 5) ? 4 : 6,
-                'floor'        => ($i <= 5) ? 'Ground' : 'Second',
-                'status'       => 'available',
-            ]);
+            Table::firstOrCreate(
+                ['table_number' => $i],
+                [
+                    'capacity' => ($i <= 5) ? 4 : 6,
+                    'floor'    => ($i <= 5) ? 'Ground' : 'Second',
+                    'status'   => 'available',
+                ]
+            );
         }
     }
 }
