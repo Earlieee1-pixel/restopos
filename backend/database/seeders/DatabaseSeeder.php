@@ -45,13 +45,31 @@ class DatabaseSeeder extends Seeder
             ['name' => 'Dessert',  'icon' => '🍨', 'sort_order' => 5],
         ];
 
-        // Sample products per category
+        // Sample products per category — kauban ang Imgur image URLs
         $sampleProducts = [
-            'Chicken'  => [['Chickenjoy 1pc', 89], ['Chickenjoy 2pc', 159], ['Chicken Sandwich', 99]],
-            'Burger'   => [['Yumburger', 49], ['Cheeseburger', 59], ['Double Yumburger', 79]],
-            'Pasta'    => [['Jolly Spaghetti', 79], ['Baked Mac', 89]],
-            'Drinks'   => [['Coke Float', 55], ['Pineapple Juice', 45], ['Bottled Water', 30]],
-            'Dessert'  => [['Peach Mango Pie', 39], ['Hot Fudge Sundae', 49]],
+            'Chicken' => [
+                ['Chickenjoy 1pc',    89,  'https://i.imgur.com/D10whPz.jpg'],
+                ['Chickenjoy 2pc',    159, 'https://i.imgur.com/6dDWDxg.jpg'],
+                ['Chicken Sandwich',  99,  'https://i.imgur.com/H8Y53j1.jpg'],
+            ],
+            'Burger' => [
+                ['Yumburger',         49,  'https://i.imgur.com/pA1I9NI.jpg'],
+                ['Cheeseburger',      59,  'https://i.imgur.com/qtvjtX4.jpg'],
+                ['Double Yumburger',  79,  'https://i.imgur.com/KBpavFS.jpg'],
+            ],
+            'Pasta' => [
+                ['Jolly Spaghetti',   79,  'https://i.imgur.com/1zvEXjc.jpg'],
+                ['Baked Mac',         89,  'https://i.imgur.com/rOurbXI.jpg'],
+            ],
+            'Drinks' => [
+                ['Coke Float',        55,  'https://i.imgur.com/KfOMmfR.jpg'],
+                ['Pineapple Juice',   45,  'https://i.imgur.com/1cGkLs5.jpg'],
+                ['Bottled Water',     30,  'https://i.imgur.com/G0F7Tx8.jpg'],
+            ],
+            'Dessert' => [
+                ['Peach Mango Pie',   39,  'https://i.imgur.com/fJ1QcSO.jpg'],
+                ['Hot Fudge Sundae',  49,  'https://i.imgur.com/oC1xEvl.jpg'],
+            ],
         ];
 
         foreach ($categories as $catData) {
@@ -62,15 +80,21 @@ class DatabaseSeeder extends Seeder
             );
 
             // I-seed ang products para sa kategorya
-            foreach ($sampleProducts[$catData['name']] as [$productName, $price]) {
-                Product::firstOrCreate(
+            foreach ($sampleProducts[$catData['name']] as [$productName, $price, $image]) {
+                $product = Product::firstOrCreate(
                     ['name' => $productName, 'category_id' => $category->id],
                     [
                         'description'  => $productName . ' - ' . $catData['name'],
                         'price'        => $price,
+                        'image'        => $image,
                         'is_available' => true,
                     ]
                 );
+
+                // I-update ang image kung wala pa
+                if (!$product->image) {
+                    $product->update(['image' => $image]);
+                }
             }
         }
 
