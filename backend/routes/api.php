@@ -9,8 +9,8 @@ use App\Http\Controllers\Report\ReportController;
 use App\Http\Controllers\Table\TableController;
 use App\Http\Controllers\User\UserController;
 
-// ─── Auth (walay token needed) ───────────────────────────────
-Route::post('/login', [AuthController::class, 'login']);
+// ─── Auth (walay token needed) — throttled para mapugong ang brute force ───
+Route::middleware('throttle:login')->post('/login', [AuthController::class, 'login']);
 
 // ─── Mga route nga need authentication ───────────────────────
 Route::middleware('auth:sanctum')->group(function () {

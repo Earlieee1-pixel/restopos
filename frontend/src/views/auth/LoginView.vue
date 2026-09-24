@@ -11,7 +11,9 @@
       </div>
 
       <!-- Error message -->
-      <p v-if="error" class="text-red-500 text-sm text-center mb-4">{{ error }}</p>
+      <p v-if="error" class="text-sm text-center mb-4" :class="rateLimited ? 'text-orange-500' : 'text-red-500'">
+        {{ error }}
+      </p>
 
       <!-- Login form -->
       <form @submit.prevent="handleLogin" class="space-y-4">
@@ -23,6 +25,7 @@
             placeholder="admin@restopos.com"
             class="pos-input"
             required
+            :disabled="rateLimited"
           />
         </div>
 
@@ -34,15 +37,16 @@
             placeholder="••••••••"
             class="pos-input"
             required
+            :disabled="rateLimited"
           />
         </div>
 
         <button
           type="submit"
           class="btn-primary w-full"
-          :disabled="loading"
+          :disabled="loading || rateLimited"
         >
-          {{ loading ? 'Logging in...' : 'Log In' }}
+          {{ loading ? 'Logging in...' : rateLimited ? `Try again in ${countdown}s` : 'Log In' }}
         </button>
       </form>
 
@@ -55,17 +59,28 @@ import { ref, reactive } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/store/modules/authStore'
 
-const authStore = useAuthStore()
-const router    = useRouter()
+const authStore   = useAuthStore()
+const router      = useRouter()
+const loading     = ref(false)
+const error       = ref('')
+const rateLimited = ref(false)
+const countdown   = ref(60)
 
-const loading = ref(false)
-const error   = ref('')
+const form = reactive({ email: '', password: '' })
 
-// Form data
-const form = reactive({
-  email:    '',
-  password: '',
-})
+// I-start ang countdown kung na-rate limit
+function startCooldown() {
+  rateLimited.value = true
+  countdown.value   = 60
+  const interval = setInterval(() => {
+    countdown.value--
+    if (countdown.value <= 0) {
+      clearInterval(interval)
+      rateLimited.value = false
+      error.value       = ''
+    }
+  }, 1000)
+}
 
 // Submit ang login form
 async function handleLogin() {
@@ -75,8 +90,13 @@ async function handleLogin() {
     await authStore.login(form)
     router.push({ name: 'dashboard' })
   } catch (e) {
-    // Ipakita ang error kung sayop ang credentials
-    error.value = e.response?.data?.message ?? 'Invalid email or password.'
+    // I-check kung rate limited ba
+    if (e.response?.status === 429) {
+      error.value = 'Too many login attempts. Please wait a minute.'
+      startCooldown()
+    } else {
+      error.value = e.response?.data?.message ?? 'Invalid email or password.'
+    }
   } finally {
     loading.value = false
   }
