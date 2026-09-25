@@ -166,9 +166,11 @@ async function submitPasswordChange() {
   pwLoading.value = true
   try {
     await userService.changePassword({ ...pwForm })
-    pwSuccess.value = 'Password changed successfully.'
-    toastSuccess('Password changed.')
-    setTimeout(() => closePasswordModal(), 1500)
+    toastSuccess('Password changed. Please log in again.')
+    closePasswordModal()
+    // I-clear ang session ug i-redirect sa login — tanan sessions gi-delete sa backend
+    await authStore.logout()
+    router.push({ name: 'login' })
   } catch (e) {
     pwError.value = e.response?.data?.message ?? 'Failed to change password.'
     toastError(pwError.value)

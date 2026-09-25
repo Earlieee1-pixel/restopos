@@ -32,7 +32,6 @@
           <input
             v-model="form.email"
             type="email"
-            placeholder="admin@restopos.com"
             class="pos-input"
             required
             :disabled="rateLimited"
@@ -44,7 +43,6 @@
           <input
             v-model="form.password"
             type="password"
-            placeholder="••••••••"
             class="pos-input"
             required
             :disabled="rateLimited"

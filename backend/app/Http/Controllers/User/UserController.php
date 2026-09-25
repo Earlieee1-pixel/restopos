@@ -93,9 +93,9 @@ class UserController extends Controller
 
         $user->update(['password' => Hash::make($data['new_password'])]);
 
-        // I-delete ang tanan tokens para ma-force logout sa other sessions
-        $user->tokens()->where('id', '!=', $user->currentAccessToken()->id)->delete();
+        // I-delete ang tanan tokens — i-force logout sa tanan sessions including current
+        $user->tokens()->delete();
 
-        return response()->json(['message' => 'Password changed successfully.']);
+        return response()->json(['message' => 'Password changed successfully. Please log in again.']);
     }
 }
