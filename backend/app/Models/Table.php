@@ -20,9 +20,17 @@ class Table extends Model
         return $this->hasMany(Order::class);
     }
 
-    // Aktibo nga order karon
+    // Tanan aktibo nga orders karon (hasMany para ma-handle ang multiple)
+    public function activeOrders()
+    {
+        return $this->hasMany(Order::class)->whereIn('status', ['pending', 'preparing']);
+    }
+
+    // Pinaka-bag-o nga aktibo nga order — para sa badge display
     public function activeOrder()
     {
-        return $this->hasOne(Order::class)->whereIn('status', ['pending', 'preparing']);
+        return $this->hasOne(Order::class)
+            ->whereIn('status', ['pending', 'preparing'])
+            ->latestOfMany();
     }
 }

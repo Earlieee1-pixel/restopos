@@ -36,11 +36,18 @@ export const useProductStore = defineStore('product', () => {
     }
   }
 
-  // I-toggle availability sa menu
+  // I-toggle availability sa menu — i-revert kung mag-fail
   async function toggleAvailability(id) {
-    const { data: updated } = await productService.toggleAvailability(id)
-    const idx = products.value.findIndex((p) => p.id === id)
-    if (idx !== -1) products.value[idx] = updated
+    const prev = products.value.find((p) => p.id === id)
+    try {
+      const { data: updated } = await productService.toggleAvailability(id)
+      const idx = products.value.findIndex((p) => p.id === id)
+      if (idx !== -1) products.value[idx] = updated
+    } catch (e) {
+      // I-revert ang optimistic update kung naa — wala ta nag-update sa UI before API
+      // I-rethrow para ma-handle sa caller (ProductView)
+      throw e
+    }
   }
 
   // Bag-ong produkto — i-add sa listahan

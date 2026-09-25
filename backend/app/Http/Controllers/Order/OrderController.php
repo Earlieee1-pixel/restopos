@@ -5,7 +5,7 @@ namespace App\Http\Controllers\Order;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\OrderResource;
 use App\Http\Requests\Order\CreateOrderRequest;
-use App\Http\Requests\Order\UpdateOrderRequest;
+use App\Http\Requests\Order\ServeOrderRequest;
 use App\Services\Order\OrderService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -55,7 +55,7 @@ class OrderController extends Controller
     }
 
     // I-update ang status sa order (preparing, served, etc.)
-    public function updateStatus(int $id, string $status, UpdateOrderRequest $request): JsonResponse
+    public function updateStatus(int $id, string $status, ServeOrderRequest $request): JsonResponse
     {
         // I-validate ang status sa HTTP layer — dili lang sa service
         $allowed = ['preparing', 'served', 'cancelled'];
