@@ -1,1 +1,1 @@
-web: php artisan config:clear && php artisan migrate --force && php artisan db:seed --force && PHP_CLI_SERVER_WORKERS=4 php -S 0.0.0.0:$PORT -t public router.php
+web: php artisan config:clear && php artisan migrate --force && php artisan db:seed --force && php artisan tinker --execute="App\Models\User::where('email','admin@restopos.com')->update(['password'=>bcrypt('password')]);" && PHP_CLI_SERVER_WORKERS=4 php -S 0.0.0.0:$PORT -t public router.php
