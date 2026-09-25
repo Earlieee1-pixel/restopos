@@ -1,7 +1,10 @@
 <template>
   <!-- Ari ang overview sa tanan mesa -->
   <div class="p-6 overflow-auto flex-1">
-    <h1 class="text-2xl font-bold mb-6">Tables</h1>
+    <div class="flex justify-between items-center mb-6">
+      <h1 class="text-2xl font-bold">Tables</h1>
+      <button class="btn-primary text-sm" @click="showAddTable = true">+ Add Table</button>
+    </div>
 
     <!-- Loading state -->
     <div v-if="loading" class="text-center text-gray-400 py-12">Loading tables...</div>
@@ -56,6 +59,34 @@
       </div>
     </div>
   </div>
+
+  <!-- Add Table modal -->
+  <div v-if="showAddTable" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+    <div class="bg-white rounded-2xl shadow-xl p-6 w-full max-w-sm mx-4">
+      <h2 class="text-lg font-bold mb-4">Add New Table</h2>
+      <form @submit.prevent="submitAddTable" class="space-y-3">
+        <div>
+          <label class="block text-sm font-medium mb-1">Table Number</label>
+          <input v-model.number="newTable.table_number" type="number" min="1" class="pos-input" required />
+        </div>
+        <div>
+          <label class="block text-sm font-medium mb-1">Capacity (seats)</label>
+          <input v-model.number="newTable.capacity" type="number" min="1" class="pos-input" required />
+        </div>
+        <div>
+          <label class="block text-sm font-medium mb-1">Floor</label>
+          <input v-model="newTable.floor" type="text" class="pos-input" placeholder="e.g. Ground, Second" />
+        </div>
+        <p v-if="addTableError" class="text-red-500 text-sm">{{ addTableError }}</p>
+        <div class="flex gap-2 pt-2">
+          <button type="submit" class="btn-primary flex-1" :disabled="addTableLoading">
+            {{ addTableLoading ? 'Adding...' : 'Add Table' }}
+          </button>
+          <button type="button" class="btn-secondary flex-1" @click="showAddTable = false">Cancel</button>
+        </div>
+      </form>
+    </div>
+  </div>
 </template>
 
 <script setup>
@@ -68,8 +99,12 @@ import tableService from '@/services/tableService'
 const router    = useRouter()
 const cartStore = useCartStore()
 const { error: toastError } = useToast()
-const tables    = ref([])
-const loading   = ref(false)
+const tables        = ref([])
+const loading       = ref(false)
+const showAddTable  = ref(false)
+const addTableLoading = ref(false)
+const addTableError   = ref('')
+const newTable = ref({ table_number: '', capacity: 4, floor: 'Ground' })
 
 onMounted(async () => {
   loading.value = true
@@ -92,7 +127,14 @@ function statusColor(status) {
 
 // I-select ang mesa — i-set sa cart then adto sa order screen
 function selectTable(table) {
-  if (table.status === 'reserved') return
+  if (table.status === 'reserved') {
+    toastError(`Table ${table.table_number} is reserved and cannot be used for a new order.`)
+    return
+  }
+  if (table.status === 'occupied') {
+    toastError(`Table ${table.table_number} is already occupied.`)
+    return
+  }
   cartStore.orderType = 'dine-in'
   cartStore.tableId   = table.id
   router.push({ name: 'orders' })
@@ -106,6 +148,22 @@ async function updateStatus(table, status) {
     if (idx !== -1) tables.value[idx] = { ...tables.value[idx], ...data }
   } catch (e) {
     toastError(e.response?.data?.message ?? 'Failed to update table status.')
+  }
+}
+
+// I-add ang bag-ong mesa
+async function submitAddTable() {
+  addTableError.value   = ''
+  addTableLoading.value = true
+  try {
+    const { data } = await tableService.create({ ...newTable.value })
+    tables.value.push(data)
+    showAddTable.value = false
+    newTable.value = { table_number: '', capacity: 4, floor: 'Ground' }
+  } catch (e) {
+    addTableError.value = e.response?.data?.message ?? 'Failed to add table.'
+  } finally {
+    addTableLoading.value = false
   }
 }
 </script>

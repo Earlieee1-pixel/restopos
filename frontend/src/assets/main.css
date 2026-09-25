@@ -40,12 +40,15 @@
 
 /* Print styles para sa receipt modal */
 @media print {
-  body > * { display: none !important; }
+  /* I-hide ang tanan except ang receipt */
+  body * { visibility: hidden !important; }
+  #receipt-content,
+  #receipt-content * { visibility: visible !important; }
   #receipt-content {
-    display: block !important;
-    position: fixed;
+    position: absolute;
     top: 0;
     left: 0;
     width: 100%;
+    padding: 20px;
   }
 }

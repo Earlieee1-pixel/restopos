@@ -25,13 +25,18 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('/categories/{id}', [CategoryController::class, 'update']);
     Route::delete('/categories/{id}', [CategoryController::class, 'destroy']);
 
-    // Mga produkto sa menu
+    // Mga produkto sa menu — read access sa tanan, mutations para sa manager/admin
     Route::get('/products/trashed', [ProductController::class, 'trashed']);
-    Route::patch('/products/{id}/restore', [ProductController::class, 'restore']);
+    Route::middleware('role:manager,admin')->group(function () {
+        Route::patch('/products/{id}/restore', [ProductController::class, 'restore']);
+        Route::post('/products/{id}/image', [ProductController::class, 'uploadImage']);
+    });
     Route::delete('/products/{id}/force', [ProductController::class, 'forceDelete']);
+    Route::middleware('role:admin')->group(function () {
+        // Force delete — admin lang
+    });
     Route::apiResource('products', ProductController::class);
     Route::patch('/products/{id}/availability', [ProductController::class, 'toggleAvailability']);
-    Route::post('/products/{id}/image', [ProductController::class, 'uploadImage']);
 
     // Mga mesa
     Route::get('/tables', [TableController::class, 'index']);

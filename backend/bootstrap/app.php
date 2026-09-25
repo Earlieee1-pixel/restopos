@@ -34,7 +34,15 @@ return Application::configure(basePath: dirname(__DIR__))
         // I-hide ang error details sa production — generic messages lang
         $exceptions->render(function (\Throwable $e, Request $request) {
             if ($request->is('api/*') && app()->environment('production')) {
-                // I-log ang actual error pero generic lang ang ibalik
+                // I-log ang actual error para sa debugging
+                \Illuminate\Support\Facades\Log::error($e->getMessage(), [
+                    'exception' => get_class($e),
+                    'file'      => $e->getFile(),
+                    'line'      => $e->getLine(),
+                    'url'       => $request->fullUrl(),
+                    'method'    => $request->method(),
+                ]);
+
                 if ($e instanceof \Illuminate\Validation\ValidationException) {
                     return response()->json([
                         'message' => 'The given data was invalid.',

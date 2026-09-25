@@ -3,10 +3,13 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 // Model sa mga order sa customers
 class Order extends Model
 {
+    use SoftDeletes;
+
     protected $fillable = [
         'order_number',
         'cashier_id',

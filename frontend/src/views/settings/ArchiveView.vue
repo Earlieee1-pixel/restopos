@@ -86,11 +86,13 @@
 import { ref, computed, onMounted } from 'vue'
 import { useAuthStore } from '@/store/modules/authStore'
 import { useToast } from '@/composables/useToast'
+import { useImgUrl } from '@/composables/useImgUrl'
 import productService from '@/services/productService'
 import { formatDateTime } from '@/utils/date'
 
 const authStore = useAuthStore()
 const { success, error: toastError } = useToast()
+const { imgUrl } = useImgUrl()
 
 // Admin lang pwede mag-permanent delete
 const isAdmin = computed(() => authStore.user?.role === 'admin')
@@ -100,14 +102,6 @@ const loading       = ref(false)
 const deletingProduct = ref(null)
 const deleteLoading   = ref(false)
 const deleteError     = ref('')
-
-// I-prefix ang backend URL para sa product images
-const backendUrl = import.meta.env.VITE_API_URL?.replace('/api', '') ?? 'http://localhost:8000'
-function imgUrl(path) {
-  if (!path) return ''
-  if (path.startsWith('http')) return path
-  return backendUrl + path
-}
 
 function formatDate(dateStr) {
   return dateStr ? formatDateTime(dateStr) : '—'

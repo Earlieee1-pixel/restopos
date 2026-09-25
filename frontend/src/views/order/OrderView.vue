@@ -99,7 +99,7 @@
               <button
                 v-if="['pending', 'preparing'].includes(order.status)"
                 class="text-xs px-3 py-1 bg-red-100 text-red-600 rounded-lg font-medium hover:bg-red-200"
-                @click="handleCancel(order.id)"
+                @click="confirmingCancelId = order.id"
               >Cancel</button>
             </div>
           </div>
@@ -109,8 +109,8 @@
       <!-- History tab -->
       <div v-if="activeTab === 'history'" class="flex-1 flex flex-col overflow-hidden">
 
-        <!-- Date filter -->
-        <div class="p-4 border-b flex items-center gap-3 bg-white">
+        <!-- Date filter + search -->
+        <div class="p-4 border-b flex items-center gap-3 bg-white flex-wrap">
           <label class="text-sm font-medium text-gray-600">Date</label>
           <input
             v-model="historyDate"
@@ -123,13 +123,19 @@
             class="btn-secondary text-xs px-3 py-1"
             @click="historyDate = ''; loadHistory(1)"
           >Clear</button>
+          <input
+            v-model="historySearch"
+            type="text"
+            class="pos-input text-sm flex-1 min-w-32"
+            placeholder="Search order # or cashier..."
+          />
         </div>
 
         <div class="flex-1 overflow-auto p-4 space-y-3">
           <div v-if="historyLoading" class="text-center text-gray-400 py-12">Loading history...</div>
-          <div v-else-if="!history.length" class="text-center text-gray-400 py-12">No order history found.</div>
+          <div v-else-if="!filteredHistory.length" class="text-center text-gray-400 py-12">No order history found.</div>
 
-          <div v-for="order in history" :key="order.id" class="pos-card space-y-2">
+          <div v-for="order in filteredHistory" :key="order.id" class="pos-card space-y-2">
             <div class="flex justify-between items-start">
               <div>
                 <span class="font-bold text-sm">{{ order.order_number }}</span>
@@ -180,6 +186,21 @@
 
   </div>
 
+  <!-- Cancel order confirmation -->
+  <div v-if="confirmingCancelId" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+    <div class="bg-white rounded-2xl shadow-xl p-6 w-full max-w-sm mx-4 text-center">
+      <div class="text-4xl mb-3">⚠️</div>
+      <h2 class="text-lg font-bold mb-2">Cancel Order?</h2>
+      <p class="text-sm text-gray-500 mb-6">This order will be cancelled and cannot be undone.</p>
+      <div class="flex gap-2">
+        <button class="btn-primary flex-1 bg-red-600 hover:bg-red-700" @click="handleCancel(confirmingCancelId)">
+          Yes, Cancel
+        </button>
+        <button class="btn-secondary flex-1" @click="confirmingCancelId = null">Keep Order</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Mark Served modal — i-collect ang bayad ug compute ang sukli -->
   <div v-if="serveModal.open" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
     <div class="bg-white rounded-2xl shadow-xl p-6 w-full max-w-sm mx-4">
@@ -202,7 +223,6 @@
             min="0"
             class="pos-input"
             :placeholder="serveModal.order?.total_amount"
-            @input="serveModal.amountTendered = $event.target.value"
           />
         </div>
 
@@ -216,13 +236,16 @@
       <div class="flex gap-2 mt-5">
         <button
           class="btn-primary flex-1"
-          :disabled="serveModal.loading"
+          :disabled="serveModal.loading || serveModal.amountTendered < Number(serveModal.order?.total_amount)"
           @click="confirmServe"
         >
           {{ serveModal.loading ? 'Processing...' : 'Confirm Served' }}
         </button>
         <button class="btn-secondary flex-1" @click="serveModal.open = false">Cancel</button>
       </div>
+      <p v-if="serveModal.amountTendered < Number(serveModal.order?.total_amount)" class="text-xs text-red-400 text-center mt-2">
+        Cash must be at least ₱{{ Number(serveModal.order?.total_amount).toFixed(2) }}
+      </p>
     </div>
   </div>
 </template>
@@ -238,12 +261,16 @@ import ProductCard from '@/components/product/ProductCard.vue'
 import CartPanel from '@/components/order/CartPanel.vue'
 import { formatDateTime } from '@/utils/date'
 
+import { useToast } from '@/composables/useToast'
+
 const productStore = useProductStore()
 const cartStore    = useCartStore()
 const orderStore   = useOrderStore()
+const { error: toastError } = useToast()
 
-const activeTab = ref('menu')
-const tables    = ref([])
+const activeTab          = ref('menu')
+const tables             = ref([])
+const confirmingCancelId = ref(null)
 
 // Serve modal state — para sa cash collection
 const serveModal = reactive({
@@ -257,8 +284,19 @@ const serveModal = reactive({
 const history         = ref([])
 const historyLoading  = ref(false)
 const historyDate     = ref('')
+const historySearch   = ref('')
 const historyPage     = ref(1)
 const historyLastPage = ref(1)
+
+// I-filter ang history base sa search
+const filteredHistory = computed(() => {
+  if (!historySearch.value.trim()) return history.value
+  const q = historySearch.value.toLowerCase()
+  return history.value.filter(
+    (o) => o.order_number.toLowerCase().includes(q) ||
+           o.cashier?.name.toLowerCase().includes(q)
+  )
+})
 
 const selectedCategory = computed({
   get: () => productStore.selectedCategory,
@@ -269,13 +307,21 @@ const categories       = computed(() => productStore.categories)
 const filteredProducts = computed(() => productStore.filteredProducts)
 
 async function refreshTables() {
-  const { data } = await tableService.getAll()
-  tables.value = data
+  try {
+    const { data } = await tableService.getAll()
+    tables.value = data
+  } catch {
+    // Silent fail — dili critical kung dili ma-refresh ang tables
+  }
 }
 
 async function updateStatus(id, status) {
-  await orderStore.updateOrderStatus(id, status)
-  if (status === 'served') await refreshTables()
+  try {
+    await orderStore.updateOrderStatus(id, status)
+    if (status === 'served') await refreshTables()
+  } catch (e) {
+    toastError(e.response?.data?.message ?? 'Failed to update order status.')
+  }
 }
 
 // I-open ang serve modal para sa cash collection
@@ -295,14 +341,21 @@ async function confirmServe() {
     })
     serveModal.open = false
     await refreshTables()
+  } catch (e) {
+    toastError(e.response?.data?.message ?? 'Failed to mark order as served.')
   } finally {
     serveModal.loading = false
   }
 }
 
 async function handleCancel(id) {
-  await orderStore.cancelOrder(id)
-  await refreshTables()
+  confirmingCancelId.value = null
+  try {
+    await orderStore.cancelOrder(id)
+    await refreshTables()
+  } catch (e) {
+    toastError(e.response?.data?.message ?? 'Failed to cancel order.')
+  }
 }
 
 // I-load ang order history — optional date filter + pagination
@@ -313,6 +366,8 @@ async function loadHistory(page = 1) {
     const { data } = await orderService.getHistory(historyDate.value || null, page)
     history.value         = data.data
     historyLastPage.value = data.last_page
+  } catch {
+    toastError('Failed to load order history.')
   } finally {
     historyLoading.value = false
   }
@@ -325,11 +380,16 @@ function formatDate(dateStr) {
 let refreshInterval = null
 
 onMounted(async () => {
-  // I-load ang products ug orders parallel — await both
-  await Promise.all([
-    productStore.fetchProducts(),
-    orderStore.fetchOrders(),
-  ])
+  try {
+    // I-load ang products ug orders parallel — await both
+    await Promise.all([
+      productStore.fetchProducts(),
+      orderStore.fetchOrders(),
+      refreshTables(),
+    ])
+  } catch {
+    // Silent fail — individual functions have their own error handling
+  }
 
   // Auto-refresh active orders kada 30 segundos
   refreshInterval = setInterval(() => {

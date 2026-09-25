@@ -32,10 +32,17 @@ export const useOrderStore = defineStore('order', () => {
     await fetchOrders()
   }
 
-  // I-cancel ang order — tangtangon sa listahan
+  // I-cancel ang order — i-revert kung mag-fail ang API
   async function cancelOrder(id) {
-    await orderService.cancelOrder(id)
+    const prev = [...orders.value]
     orders.value = orders.value.filter((o) => o.id !== id)
+    try {
+      await orderService.cancelOrder(id)
+    } catch (e) {
+      // I-revert ang listahan kung mag-fail
+      orders.value = prev
+      throw e
+    }
   }
 
   return { orders, loading, fetchOrders, placeOrder, updateOrderStatus, cancelOrder }

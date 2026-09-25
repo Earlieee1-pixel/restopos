@@ -1,7 +1,17 @@
 <template>
   <!-- Ari mu log-in sa POS -->
-  <div class="min-h-screen flex items-center justify-center bg-brand-dark">
-    <div class="bg-white rounded-2xl shadow-xl p-8 w-full max-w-sm">
+  <div class="min-h-screen flex items-center justify-center relative overflow-hidden">
+
+    <!-- Background image with dark overlay -->
+    <div
+      class="absolute inset-0 bg-cover bg-center bg-no-repeat"
+      style="background-image: url('https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=1920&q=80');"
+    ></div>
+    <!-- Dark overlay para readable ang form -->
+    <div class="absolute inset-0 bg-black/65 backdrop-blur-sm"></div>
+
+    <!-- Login card -->
+    <div class="relative z-10 bg-white/95 backdrop-blur-md rounded-2xl shadow-2xl p-8 w-full max-w-sm mx-4">
 
       <!-- Logo -->
       <div class="text-center mb-6">
@@ -68,10 +78,10 @@ const countdown   = ref(60)
 
 const form = reactive({ email: '', password: '' })
 
-// I-start ang countdown kung na-rate limit
-function startCooldown() {
+// I-start ang countdown base sa Retry-After header kung naa, fallback 60s
+function startCooldown(retryAfter = 60) {
   rateLimited.value = true
-  countdown.value   = 60
+  countdown.value   = Math.ceil(retryAfter)
   const interval = setInterval(() => {
     countdown.value--
     if (countdown.value <= 0) {
@@ -92,8 +102,9 @@ async function handleLogin() {
   } catch (e) {
     // I-check kung rate limited ba
     if (e.response?.status === 429) {
-      error.value = 'Too many login attempts. Please wait a minute.'
-      startCooldown()
+      const retryAfter = e.response?.headers?.['retry-after'] ?? 60
+      error.value = `Too many login attempts. Please wait ${Math.ceil(retryAfter)} seconds.`
+      startCooldown(retryAfter)
     } else {
       error.value = e.response?.data?.message ?? 'Invalid email or password.'
     }

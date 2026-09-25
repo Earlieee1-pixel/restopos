@@ -102,24 +102,6 @@
         />
       </div>
 
-      <!-- Amount tendered input -->
-      <div class="flex items-center gap-2 text-sm">
-        <label class="text-gray-500 w-20 shrink-0">Cash</label>
-        <input
-          v-model.number="cartStore.amountTendered"
-          type="number"
-          min="0"
-          class="pos-input text-sm"
-          :placeholder="cartStore.total.toFixed(2)"
-        />
-      </div>
-
-      <!-- Change display -->
-      <div v-if="cartStore.amountTendered > 0" class="flex justify-between text-sm text-green-600 font-medium">
-        <span>Change</span>
-        <span>₱{{ cartStore.change.toFixed(2) }}</span>
-      </div>
-
       <!-- Order notes -->
       <div class="flex items-start gap-2 text-sm">
         <label class="text-gray-500 w-20 shrink-0 pt-1">Notes</label>
@@ -215,12 +197,15 @@ function collapseIfEmpty(item) {
 function clearCart() {
   cartStore.clearCart()
   confirmClear.value = false
-  expandedNotes && Object.keys(expandedNotes).forEach(k => delete expandedNotes[k])
+  // I-reset ang expandedNotes — assign empty object para trigger reactivity
+  Object.keys(expandedNotes).forEach(k => delete expandedNotes[k])
 }
 
-// Kuha lang ang available nga mga mesa
+// Kuha ang available tables + ang currently selected table (para dili mawala sa dropdown)
 const availableTables = computed(() =>
-  tables.value.filter((t) => t.status === 'available')
+  tables.value.filter((t) =>
+    t.status === 'available' || t.id === cartStore.tableId
+  )
 )
 
 onMounted(async () => {

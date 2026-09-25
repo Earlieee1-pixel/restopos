@@ -95,6 +95,24 @@
         <div v-if="!monthlySales.total_orders" class="pos-card text-center text-gray-400 py-8 text-sm">
           No orders found for this month.
         </div>
+
+        <!-- Top products para sa bulan -->
+        <div v-else class="pos-card mt-4">
+          <h2 class="text-lg font-semibold mb-4">Top Products This Month</h2>
+          <ul class="divide-y">
+            <li
+              v-for="(item, i) in (monthlySales.top_products ?? [])"
+              :key="item.product_id"
+              class="flex justify-between py-2 text-sm"
+            >
+              <span>{{ i + 1 }}. {{ item.product?.name }}</span>
+              <span class="text-gray-500">{{ item.total_qty }} sold · ₱{{ Number(item.total_revenue).toFixed(2) }}</span>
+            </li>
+            <li v-if="!(monthlySales.top_products ?? []).length" class="py-4 text-center text-gray-400 text-sm">
+              No data available.
+            </li>
+          </ul>
+        </div>
       </template>
     </div>
 
@@ -129,6 +147,9 @@ async function loadDaily() {
     ])
     dailySales.value  = sales
     topProducts.value = top
+  } catch {
+    dailySales.value  = {}
+    topProducts.value = []
   } finally {
     dailyLoading.value = false
   }
@@ -137,6 +158,8 @@ async function loadMonthly() {
   monthlyLoading.value = true
   try {
     monthlySales.value = await reportService.getMonthlySales(selectedMonth.value)
+  } catch {
+    monthlySales.value = {}
   } finally {
     monthlyLoading.value = false
   }

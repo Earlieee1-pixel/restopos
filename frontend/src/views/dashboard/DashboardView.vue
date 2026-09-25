@@ -81,24 +81,23 @@ const isManager = computed(() =>
 const loading             = ref(false)
 const dailySales          = ref({})
 const topProducts         = ref([])
-const activeOrderCount    = ref(0)
 const availableTableCount = ref(0)
+
+// I-compute directly gikan sa store para dili mag-stale
+const activeOrderCount = computed(() => orderStore.orders.length)
 
 onMounted(async () => {
   loading.value = true
   try {
     const today = new Date().toISOString().split('T')[0]
 
-    // I-load ang datos nga accessible sa tanan roles
     const [{ data: tables }] = await Promise.all([
       tableService.getAll(),
       orderStore.fetchOrders(),
     ])
 
     availableTableCount.value = tables.filter((t) => t.status === 'available').length
-    activeOrderCount.value    = orderStore.orders.length
 
-    // Reports para sa manager/admin lang
     if (isManager.value) {
       const [sales, top] = await Promise.all([
         reportService.getDailySales(today),
@@ -107,6 +106,8 @@ onMounted(async () => {
       dailySales.value  = sales
       topProducts.value = top
     }
+  } catch {
+    // I-show ang empty state — dili i-crash ang dashboard
   } finally {
     loading.value = false
   }

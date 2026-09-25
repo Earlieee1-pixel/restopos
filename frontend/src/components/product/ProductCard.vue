@@ -27,6 +27,8 @@
 </template>
 
 <script setup>
+import { useImgUrl } from '@/composables/useImgUrl'
+
 // I-emit ang 'add' event kung gi-click ang product
 defineProps({
   product: { type: Object, required: true },
@@ -34,12 +36,5 @@ defineProps({
 
 defineEmits(['add'])
 
-// I-prefix ang backend URL para sa product images
-const backendUrl = import.meta.env.VITE_API_URL?.replace('/api', '') ?? 'http://localhost:8000'
-
-function imgUrl(path) {
-  if (!path) return ''
-  if (path.startsWith('http')) return path
-  return backendUrl + path
-}
+const { imgUrl } = useImgUrl()
 </script>

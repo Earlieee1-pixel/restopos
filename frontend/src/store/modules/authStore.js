@@ -30,10 +30,18 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   // Kuha sa user info gikan sa server (para sa page refresh)
+  // I-catch ang error para dili mag-loop sa route guard
   async function fetchUser() {
     if (!token.value) return
-    const { data } = await authService.getMe()
-    user.value = data
+    try {
+      const { data } = await authService.getMe()
+      user.value = data
+    } catch {
+      // Kung mag-fail ang /me, i-clear ang token para ma-redirect sa login
+      user.value  = null
+      token.value = null
+      localStorage.removeItem('pos_token')
+    }
   }
 
   return { user, token, isLoggedIn, login, logout, fetchUser }

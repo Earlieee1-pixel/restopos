@@ -27,6 +27,11 @@ class ReportService
     // Kuha sa total sales sa usa ka bulan
     public function getMonthlySales(string $month): array
     {
+        // I-validate ang format — kinahanglan YYYY-MM
+        if (!preg_match('/^\d{4}-\d{2}$/', $month)) {
+            return ['month' => $month, 'total_orders' => 0, 'total_sales' => 0, 'top_products' => []];
+        }
+
         [$year, $mon] = explode('-', $month);
 
         $orders = Order::whereYear('created_at', $year)
@@ -34,10 +39,29 @@ class ReportService
             ->where('status', 'served')
             ->get();
 
+        // Top products para sa bulan
+        $topProducts = OrderItem::select(
+                'product_id',
+                DB::raw('SUM(quantity) as total_qty'),
+                DB::raw('SUM(subtotal) as total_revenue')
+            )
+            ->with('product:id,name,price')
+            ->whereHas('order', function ($q) use ($year, $mon) {
+                $q->where('status', 'served')
+                  ->whereYear('created_at', $year)
+                  ->whereMonth('created_at', $mon);
+            })
+            ->groupBy('product_id')
+            ->orderByDesc('total_qty')
+            ->limit(10)
+            ->get()
+            ->toArray();
+
         return [
             'month'        => $month,
             'total_orders' => $orders->count(),
             'total_sales'  => $orders->sum('total_amount'),
+            'top_products' => $topProducts,
         ];
     }
 

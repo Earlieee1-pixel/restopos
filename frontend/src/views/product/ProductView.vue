@@ -50,13 +50,14 @@
             <td class="py-3 pr-4 text-gray-500">{{ product.category?.name }}</td>
             <td class="py-3 pr-4">₱{{ product.price }}</td>
             <td class="py-3 pr-4">
-              <!-- Toggle availability -->
+              <!-- Toggle availability with loading state -->
               <button
-                class="text-xs px-2 py-1 rounded-full font-medium"
+                class="text-xs px-2 py-1 rounded-full font-medium disabled:opacity-50"
                 :class="product.is_available ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'"
-                @click="productStore.toggleAvailability(product.id)"
+                :disabled="togglingId === product.id"
+                @click="handleToggle(product)"
               >
-                {{ product.is_available ? 'Available' : 'Unavailable' }}
+                {{ togglingId === product.id ? '...' : product.is_available ? 'Available' : 'Unavailable' }}
               </button>
             </td>
             <td v-if="canManage" class="py-3 space-x-2">
@@ -108,14 +109,14 @@
             <textarea v-model="form.description" class="pos-input" rows="2" />
           </div>
 
-          <!-- Image upload — para sa editing only -->
-          <div v-if="editingProduct">
+          <!-- Image upload — available sa create ug edit -->
+          <div>
             <label class="block text-sm font-medium mb-1">Product Image</label>
             <div class="flex items-center gap-3">
               <div class="w-16 h-16 rounded-lg bg-gray-100 flex items-center justify-center overflow-hidden shrink-0">
                 <img
-                  v-if="imagePreview || editingProduct.image"
-                  :src="imagePreview || editingProduct.image"
+                  v-if="imagePreview || editingProduct?.image"
+                  :src="imagePreview || imgUrl(editingProduct?.image)"
                   class="w-full h-full object-cover"
                   alt="Preview"
                 />
@@ -179,10 +180,12 @@ import { ref, reactive, computed, onMounted } from 'vue'
 import { useProductStore } from '@/store/modules/productStore'
 import { useAuthStore } from '@/store/modules/authStore'
 import { useToast } from '@/composables/useToast'
+import { useImgUrl } from '@/composables/useImgUrl'
 
 const productStore = useProductStore()
 const authStore    = useAuthStore()
 const { success, error: toastError } = useToast()
+const { imgUrl } = useImgUrl()
 
 // Manager ug admin lang pwede mag-edit/delete
 const canManage = computed(() =>
@@ -211,6 +214,21 @@ const imageFile    = ref(null)
 const imagePreview = ref('')
 const imageError   = ref('')
 
+// Toggle loading state — para mapugong ang double-click
+const togglingId = ref(null)
+
+async function handleToggle(product) {
+  if (togglingId.value) return
+  togglingId.value = product.id
+  try {
+    await productStore.toggleAvailability(product.id)
+  } catch (e) {
+    toastError(e.response?.data?.message ?? 'Failed to update availability.')
+  } finally {
+    togglingId.value = null
+  }
+}
+
 // Delete state
 const deletingProduct = ref(null)
 const deleteLoading   = ref(false)
@@ -226,14 +244,6 @@ const form = reactive({
 })
 
 onMounted(() => productStore.fetchProducts(true))
-
-// I-prefix ang backend URL para sa product images
-const backendUrl = import.meta.env.VITE_API_URL?.replace('/api', '') ?? 'http://localhost:8000'
-function imgUrl(path) {
-  if (!path) return ''
-  if (path.startsWith('http')) return path
-  return backendUrl + path
-}
 
 function openCreate() {
   editingProduct.value = null

@@ -18,7 +18,7 @@ class CreateOrderRequest extends FormRequest
         return [
             'table_id'              => ['nullable', 'exists:tables,id'],
             'order_type'            => ['required', 'in:dine-in,takeout'],
-            'discount'              => ['nullable', 'numeric', 'min:0'],
+            'discount'              => ['nullable', 'numeric', 'min:0', 'max:999999'],
             'amount_tendered'       => ['nullable', 'numeric', 'min:0'],
             'notes'                 => ['nullable', 'string'],
             // Kinahanglan may sulod nga items

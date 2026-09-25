@@ -57,6 +57,14 @@ class OrderController extends Controller
     // I-update ang status sa order (preparing, served, etc.)
     public function updateStatus(int $id, string $status, UpdateOrderRequest $request): JsonResponse
     {
+        // I-validate ang status sa HTTP layer — dili lang sa service
+        $allowed = ['preparing', 'served', 'cancelled'];
+        if (!in_array($status, $allowed)) {
+            return response()->json([
+                'message' => 'Invalid status. Allowed: ' . implode(', ', $allowed),
+            ], 422);
+        }
+
         $order = $this->orderService->updateStatus($id, $status, $request->validated());
         return response()->json(new OrderResource($order));
     }

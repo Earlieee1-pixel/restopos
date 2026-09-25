@@ -24,6 +24,8 @@ class ProductResource extends JsonResource
                 'sort_order' => $this->category->sort_order,
             ]),
             'category_id'  => $this->category_id,
+            // Para sa ArchiveView — kung kanus-a gi-delete
+            'deleted_at'   => $this->deleted_at?->format('Y-m-d H:i:s'),
         ];
     }
 }

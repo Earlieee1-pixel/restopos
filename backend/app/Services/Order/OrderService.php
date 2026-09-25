@@ -45,9 +45,10 @@ class OrderService
     public function createOrder(array $data): Order
     {
         return DB::transaction(function () use ($data) {
-            // Buhatan ug unique order number
+            // Buhatan ug unique order number — i-retry kung ma-collision
+            $orderNumber = $this->generateUniqueOrderNumber();
             $order = Order::create([
-                'order_number'    => 'ORD-' . strtoupper(Str::random(6)),
+                'order_number'    => $orderNumber,
                 'cashier_id'      => auth()->id(),
                 'table_id'        => $data['table_id'] ?? null,
                 'order_type'      => $data['order_type'],
@@ -75,16 +76,22 @@ class OrderService
                 ]);
             }
 
-            // I-update ang total, i-compute ang sukli
+            // I-update ang total — i-cap ang discount para dili molapas sa total
+            $discount = min($order->discount, $total);
             $order->update([
-                'total_amount' => $total - $order->discount,
-                'change'       => max(0, $order->amount_tendered - ($total - $order->discount)),
+                'discount'     => $discount,
+                'total_amount' => max(0, $total - $discount),
+                'change'       => max(0, $order->amount_tendered - max(0, $total - $discount)),
             ]);
 
             // I-mark ang mesa nga occupied kung dine-in
             if ($order->table_id) {
-                Table::where('id', $order->table_id)
-                    ->update(['status' => 'occupied']);
+                // I-check kung available ba ang mesa
+                $table = Table::findOrFail($order->table_id);
+                if ($table->status === 'reserved') {
+                    abort(422, 'Table is reserved and cannot be used for a new order.');
+                }
+                $table->update(['status' => 'occupied']);
             }
 
             return $order->load(['items.product', 'cashier', 'table']);
@@ -131,9 +138,9 @@ class OrderService
     {
         $order = Order::findOrFail($id);
 
-        // Served orders dili na pwede i-cancel
-        if ($order->status === 'served') {
-            abort(422, 'Cannot cancel a served order.');
+        // Pending ug preparing lang ang pwede i-cancel
+        if (!in_array($order->status, ['pending', 'preparing'])) {
+            abort(422, 'Only pending or preparing orders can be cancelled.');
         }
 
         $order->update(['status' => 'cancelled']);
@@ -154,5 +161,18 @@ class OrderService
         if (!$hasActive) {
             Table::where('id', $tableId)->update(['status' => 'available']);
         }
+    }
+
+    // Buhatan ug unique order number — i-retry kung ma-collision (max 5 tries)
+    private function generateUniqueOrderNumber(): string
+    {
+        $attempts = 0;
+        do {
+            $number = 'ORD-' . strtoupper(Str::random(6));
+            $exists = Order::where('order_number', $number)->exists();
+            $attempts++;
+        } while ($exists && $attempts < 5);
+
+        return $number;
     }
 }
